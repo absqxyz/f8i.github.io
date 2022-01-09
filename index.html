@@ -1,0 +1,210 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+      <script src="https://cdn.jsdelivr.net/npm/faunadb@latest/dist/faunadb.js"></script>
+    <title>WordCounter Leaderboard</title>
+  </head>
+  <style>
+    @font-face {
+    font-family: 'Whitney';
+    font-style: normal;
+    font-weight: 200;
+    src: local('Whitney'), url('https://fonts.cdnfonts.com/s/38487/whitneymedium.woff') format('woff');
+}
+
+@font-face {
+    font-family: 'Whitney Light';
+    font-style: normal;
+    font-weight: 500;
+    src: local('Whitney Light'), url('https://fonts.cdnfonts.com/s/38487/whitneylight.woff') format('woff');
+}
+
+
+body{
+  font-family: 'Whitney Light';
+  color: white;
+  padding-top: 15px;
+  padding-bottom: 15px;
+}
+
+article {
+  max-width: 576px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  overflow-wrap: break-word;
+  background-color: #2f3136;
+  border-radius: 20px;
+  border-style: solid;
+  border-left-width: 5px;
+  border-left-color: white;
+  border-right-color: #2f3136;
+  border-top-color: #2f3136;
+  border-bottom-color: #2f3136;
+  overflow:hidden;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+}
+
+  </style>
+<body onload="getLeaderboard()" style="background-color: #36393f;">
+  <article id="embed">
+  <h1 style="font-family: 'Whitney';" id="word">Loading...</h1>
+<label style="line-height: 1.6;" id="lb">Loading...</label>
+<p id="debug" style="font-size: 14px;">Loading...</p>
+  </article>
+
+<script>
+   var faunadb = window.faunadb
+  var q = faunadb.query
+  var client = new faunadb.Client({
+    secret: 'fnAEcbEzv2AAyDFpp-nmtrfLi9UMCQEFCwUBOp4-',
+    domain: 'db.eu.fauna.com',
+    scheme: 'https',
+  })
+  let word = ""
+
+  function getWord() {
+  client
+    .query(q.Get(q.Match(q.Index("data_from_id"), "SET_WORD")))
+    .then((ret) => {
+      word = ret.data.word;
+    })
+    .catch(function (e) {});
+}
+
+
+  
+function getLeaderboard(){
+
+  var players = [];
+    let result = "";
+    var pos = 0;
+    let users = 0;
+    var msgtotal = 0
+
+    getWord();
+
+    client
+      .query(
+        q.Map(
+          q.Paginate(q.Documents(q.Collection("discord-db"))),
+          q.Lambda("X" ,q.Get(q.Var("X")))
+        )
+      )
+      .then(function (x) {
+        users = x.data.length;
+        for (let i = 0; i < x.data.length; i++) {
+          if (
+            x.data[i].data.username == undefined ||
+            x.data[i].data.username == null
+          ) {
+          } else {
+            players.push({
+              id: x.data[i].data.id,
+              username: x.data[i].data.username,
+              messages: x.data[i].data.messages,
+            });
+          }
+        }
+
+        const playersSorted = players.sort(function (a, b) {
+          if (Number(a.messages) < Number(b.messages)) return -1;
+          if (Number(a.messages) > Number(b.messages)) return 1;
+          return 0;
+        });
+
+        playersSorted.reverse();
+        test = playersSorted
+      
+      
+        for (let i = 0; i < test.length; i++) {
+          let medal = "";
+          let level = "";
+          let words = "";
+          pos = pos + 1;
+          let player = test[i];
+          msgtotal = msgtotal + player.messages
+          if (player.messages < 0) {
+            level = "💎 ?????";
+          }
+          if (player.messages < 50 && player.messages > 0) {
+            level = "1";
+          }
+          if (player.messages < 100 && player.messages > 50) {
+            level = "2";
+          }
+          if (player.messages < 150 && player.messages > 100) {
+            level = "3";
+          }
+          if (player.messages < 200 && player.messages > 150) {
+            level = "4";
+          }
+          if (player.messages < 250 && player.messages > 200) {
+            level = "💎 5";
+          }
+          if (player.messages < 300 && player.messages > 250) {
+            level = "💎 6";
+          }
+          if (player.messages < 350 && player.messages > 300) {
+            level = "💎 7";
+          }
+          if (player.messages < 400 && player.messages > 350) {
+            level = "💎 8";
+          }
+          if (player.messages < 450 && player.messages > 400) {
+            level = "💎 9";
+          }
+          if (player.messages < 500 && player.messages > 450) {
+            level = "💎 10";
+          }
+          if (player.messages < 499999 && player.messages > 500)
+            {
+              level = "💎 11 💎"
+            }
+          if (player.messages > 500000) {
+            level = "😱 Admin 😱";
+          }
+
+          if (pos == 1) {
+            medal = "🥇";
+          }
+          if (pos == 2) {
+            medal = "🥈";
+          }
+          if (pos == 3) {
+            medal = "🥉";
+          }
+
+          result =
+            result +
+            "<u>(" +
+            medal +
+            pos +
+            ")</u> " +
+            player.username +
+            ": <font style=\"font-family:'Whitney'\"><b>" +
+            player.messages +
+            " " +
+            " messages" +
+            "</b></font> <i>[Level: " +
+            level +
+            "]</i>" +
+            "<br>";
+        }
+        var randomColor = "#000000".replace(/0/g,function(){return (~~(Math.random()*16)).toString(16);});
+        document.getElementById("embed").style.borderLeftColor = randomColor;
+        document.getElementById("lb").innerHTML = result
+        document.getElementById("word").innerHTML = "Global <label style=\"background: #282424; padding-left: 4px; padding-bottom: 3px; padding-right: 4px; font-family:'Consolas'; border-radius:4px\">" + word + "</label> Leaderboard"
+        //embed.setFooter("Total Users: " + (users - 1) + " | Total Messages: " + msgtotal + " | Servers Tracking: " + client2.guilds.cache.size);
+        document.getElementById("debug").innerHTML = "Total Users: " + (users - 1) + " | Total Messages: " + msgtotal
+      });
+  
+
+
+}
+
+  
+  
+</script>
+
+</body>
+</html>
